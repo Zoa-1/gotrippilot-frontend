@@ -1,51 +1,75 @@
 import React, { useState } from 'react';
-import {
-  Compass, Calendar, Users, ArrowLeft, Bookmark, Check,
-  MapPin, Utensils, Bed, Landmark, Lightbulb, PieChart, Info, Train, Bus, Plane, Car
-} from 'lucide-react';
+import { Compass, Calendar, Users, ArrowLeft, Bookmark, Check, MapPin, Utensils, Bed, Landmark, Lightbulb, IndianRupee, Info, Bus, Brain as Train, Plane, Car, CarTaxiFront, Clock, TrendingDown, Zap } from 'lucide-react';
 
-const TRANSPORT_ICONS = { Train: '🚆', Bus: '🚌', Flight: '✈️', Car: '🚗' };
-const CATEGORY_EMOJI = {
-  'Solo Travel': '🧳',
-  'Friends Trip': '🎉',
-  'Family Trip': '👨‍👩‍👧',
-  'Honeymoon': '💑',
-  'Adventure Trip': '🧗'
+const TRANSPORT_ICONS = {
+  Bus: <Bus className="h-4 w-4" />,
+  Train: <Train className="h-4 w-4" />,
+  Flight: <Plane className="h-4 w-4" />,
+  Car: <Car className="h-4 w-4" />,
+  Taxi: <CarTaxiFront className="h-4 w-4" />,
 };
+
+const CATEGORY_LABELS = {
+  'Solo Travel': 'Solo',
+  'Friends Trip': 'Friends',
+  'Family Trip': 'Family',
+  'Honeymoon': 'Honeymoon',
+  'Adventure Trip': 'Adventure',
+};
+
+function formatINR(val) {
+  return `₹${Number(val).toLocaleString('en-IN')}`;
+}
 
 export default function TripResults({ tripData, budgetLimit, onNavigate, onSave, isSaved, isSaving }) {
   const [activeTab, setActiveTab] = useState('itinerary');
 
   const {
     destination, days, travelers, style, interests,
-    transport, category,
+    transport, category, origin,
     itinerary, hotels, restaurants, attractions,
-    cost_breakdown, tips
+    cost_breakdown, tips, transport_options
   } = tripData;
 
   const budgetUnder = cost_breakdown.total <= budgetLimit;
   const budgetDiff = Math.abs(budgetLimit - cost_breakdown.total);
+  const remaining = budgetLimit - cost_breakdown.total;
 
-  const formatINR = (val) => `₹${Number(val).toLocaleString('en-IN')}`;
+  // Budget allocation percentages
+  const hotelAlloc = budgetLimit * 0.40;
+  const transportAlloc = budgetLimit * 0.25;
+  const foodAlloc = budgetLimit * 0.20;
+  const activitiesAlloc = budgetLimit * 0.15;
+
+  const transportOpts = transport_options || [];
+  const cheapest = transportOpts.length > 0
+    ? transportOpts.reduce((a, b) => a.price < b.price ? a : b)
+    : null;
+  const fastest = transportOpts.length > 0
+    ? transportOpts.reduce((a, b) => {
+        const getMins = (t) => {
+          const m = t.time.match(/(\d+)\s*h/i);
+          return m ? parseInt(m[1]) * 60 : 0;
+        };
+        return getMins(a) < getMins(b) ? a : b;
+      })
+    : null;
 
   return (
-    <div className="relative min-h-screen bg-brand-dark flex flex-col justify-between">
-      <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-brand-accent/10 rounded-full blur-3xl animate-pulse-slow pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-96 h-96 bg-emerald-600/10 rounded-full blur-3xl animate-pulse-slow pointer-events-none" />
-
-      <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-8 w-full flex-grow">
-        {/* Header navigation */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      <div className="max-w-6xl mx-auto px-4 md:px-6 py-6 w-full flex-grow">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <button onClick={() => onNavigate('planner')}
-            className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors cursor-pointer text-sm font-semibold w-fit">
+            className="flex items-center gap-2 text-slate-500 hover:text-brand-primary transition-colors cursor-pointer text-sm font-medium w-fit">
             <ArrowLeft className="h-4 w-4" /> Adjust Parameters
           </button>
 
           <button onClick={onSave} disabled={isSaved || isSaving}
-            className={`px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 border transition-all cursor-pointer ${
+            className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 border transition-all cursor-pointer ${
               isSaved
-                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 cursor-default'
-                : 'bg-brand-accent hover:bg-brand-accent/80 text-white border-brand-accent shadow-lg shadow-brand-accent/15'
+                ? 'bg-brand-accentLight border-brand-accent text-brand-accentDark cursor-default'
+                : 'bg-brand-primary hover:bg-brand-primaryDark text-white border-brand-primary'
             }`}
           >
             {isSaved ? <><Check className="h-4 w-4" />Trip Saved</> :
@@ -55,33 +79,34 @@ export default function TripResults({ tripData, budgetLimit, onNavigate, onSave,
         </div>
 
         {/* Hero Banner */}
-        <div className="glass-card rounded-3xl p-6 md:p-8 mb-8 border border-white/5 flex flex-col md:flex-row md:items-start justify-between gap-6">
+        <div className="card p-5 md:p-6 mb-6 flex flex-col md:flex-row md:items-start justify-between gap-5">
           <div>
-            <h1 className="text-3xl md:text-5xl font-black mb-3">{destination}</h1>
-            <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-400">
-              <span className="flex items-center gap-1.5 px-3 py-1 bg-white/5 rounded-full">
-                <Calendar className="h-3.5 w-3.5 text-brand-accent" />{days} Days
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">{destination}</h1>
+            {origin && (
+              <p className="text-sm text-slate-500 mb-2 flex items-center gap-1">
+                <MapPin className="h-3.5 w-3.5" /> From {origin}
+              </p>
+            )}
+            <div className="flex flex-wrap items-center gap-2 text-xs font-medium">
+              <span className="badge-gray flex items-center gap-1">
+                <Calendar className="h-3 w-3" />{days} Days
               </span>
-              <span className="flex items-center gap-1.5 px-3 py-1 bg-white/5 rounded-full">
-                <Users className="h-3.5 w-3.5 text-brand-accent" />{travelers} {travelers === 1 ? 'Traveler' : 'Travelers'}
+              <span className="badge-gray flex items-center gap-1">
+                <Users className="h-3 w-3" />{travelers} {travelers === 1 ? 'Traveler' : 'Travelers'}
               </span>
-              <span className="flex items-center gap-1.5 px-3 py-1 bg-white/5 rounded-full">
-                <Compass className="h-3.5 w-3.5 text-brand-accent" />{style} Style
-              </span>
+              <span className="badge-gray">{style} Style</span>
               {transport && (
-                <span className="flex items-center gap-1.5 px-3 py-1 bg-white/5 rounded-full">
-                  <span>{TRANSPORT_ICONS[transport] || '🚆'}</span>{transport}
+                <span className="badge-gray flex items-center gap-1">
+                  {TRANSPORT_ICONS[transport] || <Bus className="h-3 w-3" />}{transport}
                 </span>
               )}
               {category && (
-                <span className="flex items-center gap-1.5 px-3 py-1 bg-emerald-400/10 border border-emerald-400/20 text-emerald-300 rounded-full">
-                  <span>{CATEGORY_EMOJI[category] || '🧳'}</span>{category}
-                </span>
+                <span className="badge-accent">{CATEGORY_LABELS[category] || category}</span>
               )}
             </div>
-            <div className="flex flex-wrap gap-1.5 mt-4">
+            <div className="flex flex-wrap gap-1.5 mt-3">
               {(Array.isArray(interests) ? interests : interests?.split(',') || []).map(i => (
-                <span key={i} className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 bg-brand-accent/10 border border-brand-accent/20 text-brand-accent rounded-md">
+                <span key={i} className="text-[10px] uppercase font-semibold tracking-wider px-2 py-0.5 bg-brand-primaryLight text-brand-primary rounded">
                   {i.trim()}
                 </span>
               ))}
@@ -89,63 +114,146 @@ export default function TripResults({ tripData, budgetLimit, onNavigate, onSave,
           </div>
 
           {/* Budget Widget */}
-          <div className="glass-card-light rounded-2xl p-6 border border-white/5 min-w-[260px]">
-            <div className="flex justify-between items-start gap-4 mb-2">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Estimated Cost</span>
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Your Budget</span>
+          <div className="card bg-brand-light p-5 min-w-[240px]">
+            <div className="flex justify-between items-start gap-4 mb-1">
+              <span className="text-xs font-medium text-slate-500 uppercase">Estimated Cost</span>
+              <span className="text-xs font-medium text-slate-500 uppercase">Your Budget</span>
             </div>
-            <div className="flex justify-between items-baseline gap-4 mb-4">
-              <span className="text-3xl font-black text-white">{formatINR(cost_breakdown.total)}</span>
-              <span className="text-lg font-bold text-slate-400">{formatINR(budgetLimit)}</span>
+            <div className="flex justify-between items-baseline gap-4 mb-3">
+              <span className="text-2xl font-bold text-slate-900">{formatINR(cost_breakdown.total)}</span>
+              <span className="text-base font-semibold text-slate-500">{formatINR(budgetLimit)}</span>
             </div>
             {budgetUnder ? (
-              <div className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold flex items-center gap-1.5">
-                <Check className="h-3.5 w-3.5" />Under budget by {formatINR(budgetDiff)}!
+              <div className="px-3 py-1.5 rounded-md bg-brand-accentLight border border-brand-accent text-brand-accentDark text-xs font-medium flex items-center gap-1.5">
+                <Check className="h-3.5 w-3.5" />Under budget by {formatINR(budgetDiff)}
               </div>
             ) : (
-              <div className="px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-semibold flex items-center gap-1.5">
+              <div className="px-3 py-1.5 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium flex items-center gap-1.5">
                 <Info className="h-3.5 w-3.5" />Over budget by {formatINR(budgetDiff)}
               </div>
             )}
           </div>
         </div>
 
+        {/* Trip Cost Summary */}
+        <div className="card p-5 mb-6">
+          <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <IndianRupee className="h-4 w-4 text-brand-primary" />Trip Cost Summary
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div className="p-3 rounded-lg bg-blue-50 border border-blue-100">
+              <span className="text-[10px] font-semibold text-blue-600 uppercase block mb-1">Transport</span>
+              <span className="text-lg font-bold text-slate-900">{formatINR(cost_breakdown.transport)}</span>
+              <span className="text-[10px] text-slate-400 block">Allocated {formatINR(transportAlloc)}</span>
+            </div>
+            <div className="p-3 rounded-lg bg-indigo-50 border border-indigo-100">
+              <span className="text-[10px] font-semibold text-indigo-600 uppercase block mb-1">Hotel</span>
+              <span className="text-lg font-bold text-slate-900">{formatINR(cost_breakdown.accommodation)}</span>
+              <span className="text-[10px] text-slate-400 block">Allocated {formatINR(hotelAlloc)}</span>
+            </div>
+            <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-100">
+              <span className="text-[10px] font-semibold text-emerald-600 uppercase block mb-1">Food</span>
+              <span className="text-lg font-bold text-slate-900">{formatINR(cost_breakdown.food)}</span>
+              <span className="text-[10px] text-slate-400 block">Allocated {formatINR(foodAlloc)}</span>
+            </div>
+            <div className="p-3 rounded-lg bg-amber-50 border border-amber-100">
+              <span className="text-[10px] font-semibold text-amber-600 uppercase block mb-1">Activities</span>
+              <span className="text-lg font-bold text-slate-900">{formatINR(cost_breakdown.activities)}</span>
+              <span className="text-[10px] text-slate-400 block">Allocated {formatINR(activitiesAlloc)}</span>
+            </div>
+            <div className="p-3 rounded-lg bg-slate-100 border border-slate-200">
+              <span className="text-[10px] font-semibold text-slate-600 uppercase block mb-1">Remaining</span>
+              <span className={`text-lg font-bold ${remaining >= 0 ? 'text-brand-accent' : 'text-red-500'}`}>{formatINR(remaining)}</span>
+              <span className="text-[10px] text-slate-400 block">of {formatINR(budgetLimit)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Transport Options */}
+        {transportOpts.length > 0 && (
+          <div className="card p-5 mb-6">
+            <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
+              <Bus className="h-4 w-4 text-brand-primary" />Transport Options: {origin || 'Your City'} to {destination}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {transportOpts.map((opt, i) => {
+                const isCheapest = cheapest && opt.mode === cheapest.mode;
+                const isFastest = fastest && opt.mode === fastest.mode;
+                return (
+                  <div key={i} className={`p-4 rounded-lg border transition-all ${
+                    opt.mode === transport
+                      ? 'bg-brand-primaryLight border-brand-primary'
+                      : 'bg-white border-brand-border'
+                  }`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        {TRANSPORT_ICONS[opt.mode] || <Bus className="h-4 w-4" />}
+                        <span className="font-semibold text-sm text-slate-900">{opt.mode}</span>
+                      </div>
+                      <div className="flex gap-1">
+                        {isCheapest && (
+                          <span className="badge-accent flex items-center gap-0.5 text-[10px]">
+                            <TrendingDown className="h-2.5 w-2.5" />Cheapest
+                          </span>
+                        )}
+                        {isFastest && (
+                          <span className="badge-primary flex items-center gap-0.5 text-[10px]">
+                            <Zap className="h-2.5 w-2.5" />Fastest
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-bold text-brand-primary">{formatINR(opt.price)}</span>
+                      <span className="flex items-center gap-1 text-slate-500 text-xs">
+                        <Clock className="h-3 w-3" />{opt.time}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Main 2-col Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-5">
             {/* Tabs */}
-            <div className="flex border-b border-white/10 gap-6">
+            <div className="flex border-b border-brand-border gap-6">
               {['itinerary', 'recommendations'].map(tab => (
                 <button key={tab} onClick={() => setActiveTab(tab)}
-                  className={`pb-3 text-sm font-bold transition-all relative cursor-pointer capitalize ${
-                    activeTab === tab ? 'text-white' : 'text-slate-400 hover:text-white'
+                  className={`pb-2.5 text-sm font-semibold transition-all relative cursor-pointer capitalize ${
+                    activeTab === tab ? 'text-brand-primary' : 'text-slate-500 hover:text-slate-700'
                   }`}
                 >
                   {tab === 'itinerary' ? 'Day-by-Day Itinerary' : 'Hotels & Dining'}
-                  {activeTab === tab && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-accent rounded-full" />}
+                  {activeTab === tab && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary rounded-full" />}
                 </button>
               ))}
             </div>
 
             {/* Itinerary Tab */}
             {activeTab === 'itinerary' && (
-              <div className="relative border-l border-white/10 pl-6 md:pl-8 ml-3 space-y-12 py-2">
+              <div className="space-y-8 py-2">
                 {itinerary.map((day) => (
-                  <div key={day.day_number} className="relative">
-                    <div className="absolute -left-[43px] md:-left-[51px] top-1.5 bg-brand-dark p-1.5 rounded-full border-2 border-emerald-400 text-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.3)]">
-                      <Compass className="h-4 w-4 animate-spin-slow" />
+                  <div key={day.day_number}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="bg-brand-primary text-white text-xs font-bold h-6 w-6 rounded-full flex items-center justify-center">
+                        {day.day_number}
+                      </div>
+                      <h3 className="text-base font-bold text-slate-900">{day.title}</h3>
                     </div>
-                    <h3 className="text-lg font-bold text-white mb-4">{day.title}</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 ml-8">
                       {[
-                        { label: 'Morning', color: 'text-amber-400', content: day.morning },
-                        { label: 'Afternoon', color: 'text-sky-400', content: day.afternoon },
-                        { label: 'Evening', color: 'text-indigo-400', content: day.evening }
+                        { label: 'Morning', color: 'text-amber-600', bg: 'bg-amber-50', content: day.morning },
+                        { label: 'Afternoon', color: 'text-sky-600', bg: 'bg-sky-50', content: day.afternoon },
+                        { label: 'Evening', color: 'text-indigo-600', bg: 'bg-indigo-50', content: day.evening }
                       ].map(slot => (
-                        <div key={slot.label} className="glass-card rounded-2xl p-5 border border-white/5 space-y-2">
-                          <span className={`text-[10px] font-black uppercase tracking-wider ${slot.color}`}>{slot.label}</span>
-                          <p className="text-slate-300 text-sm leading-relaxed">{slot.content}</p>
+                        <div key={slot.label} className={`${slot.bg} rounded-lg p-4 border border-slate-100 space-y-1.5`}>
+                          <span className={`text-[10px] font-bold uppercase tracking-wider ${slot.color}`}>{slot.label}</span>
+                          <p className="text-slate-700 text-sm leading-relaxed">{slot.content}</p>
                         </div>
                       ))}
                     </div>
@@ -159,22 +267,22 @@ export default function TripResults({ tripData, budgetLimit, onNavigate, onSave,
               <div className="space-y-8">
                 {/* Hotels */}
                 <div>
-                  <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                    <Bed className="h-5 w-5 text-brand-accent" />Recommended Stay
+                  <h3 className="text-base font-bold mb-3 flex items-center gap-2 text-slate-900">
+                    <Bed className="h-4 w-4 text-brand-primary" />Recommended Stay
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {hotels.map((h, i) => (
-                      <div key={i} className="glass-card rounded-2xl p-6 border border-white/5 flex flex-col justify-between gap-4">
+                      <div key={i} className="card p-4 flex flex-col justify-between gap-3">
                         <div>
-                          <div className="flex justify-between items-start gap-3 mb-2">
-                            <h4 className="font-bold text-white text-base leading-tight">{h.name}</h4>
-                            <span className="px-2 py-0.5 bg-brand-accent/15 border border-brand-accent/25 rounded text-[10px] font-bold text-brand-accent">{h.rating}</span>
+                          <div className="flex justify-between items-start gap-3 mb-1">
+                            <h4 className="font-bold text-sm text-slate-900">{h.name}</h4>
+                            <span className="badge-primary text-[10px]">{h.rating}</span>
                           </div>
-                          <p className="text-slate-400 text-xs leading-relaxed">{h.features}</p>
+                          <p className="text-slate-500 text-xs">{h.features}</p>
                         </div>
-                        <div className="flex justify-between items-center pt-2 border-t border-white/5">
-                          <span className="text-slate-400 text-xs uppercase font-semibold">Per Night</span>
-                          <span className="text-lg font-black text-emerald-400">{formatINR(h.price)}</span>
+                        <div className="flex justify-between items-center pt-2 border-t border-brand-border">
+                          <span className="text-slate-400 text-[10px] uppercase font-medium">Per Night</span>
+                          <span className="text-base font-bold text-brand-accent">{formatINR(h.price)}</span>
                         </div>
                       </div>
                     ))}
@@ -183,18 +291,18 @@ export default function TripResults({ tripData, budgetLimit, onNavigate, onSave,
 
                 {/* Restaurants */}
                 <div>
-                  <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                    <Utensils className="h-5 w-5 text-brand-accent" />Recommended Dining
+                  <h3 className="text-base font-bold mb-3 flex items-center gap-2 text-slate-900">
+                    <Utensils className="h-4 w-4 text-brand-primary" />Recommended Dining
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {restaurants.map((r, i) => (
-                      <div key={i} className="glass-card rounded-2xl p-6 border border-white/5 space-y-2">
-                        <div className="flex justify-between items-start gap-4 mb-1">
-                          <h4 className="font-bold text-white text-base leading-tight">{r.name}</h4>
-                          <span className="text-emerald-400 font-extrabold text-sm">{r.cost}</span>
+                      <div key={i} className="card p-4 space-y-1.5">
+                        <div className="flex justify-between items-start gap-3">
+                          <h4 className="font-bold text-sm text-slate-900">{r.name}</h4>
+                          <span className="text-brand-accent font-bold text-xs">{r.cost}</span>
                         </div>
-                        <span className="text-[10px] text-brand-accent font-semibold uppercase">{r.cuisine}</span>
-                        <p className="text-slate-400 text-xs leading-relaxed pt-1">{r.description}</p>
+                        <span className="text-[10px] text-brand-primary font-semibold uppercase">{r.cuisine}</span>
+                        <p className="text-slate-500 text-xs leading-relaxed pt-0.5">{r.description}</p>
                       </div>
                     ))}
                   </div>
@@ -204,66 +312,67 @@ export default function TripResults({ tripData, budgetLimit, onNavigate, onSave,
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Cost Breakdown */}
-            <div className="glass-card rounded-3xl p-6 border border-white/5 space-y-4">
-              <h3 className="text-lg font-bold flex items-center gap-2">
-                <PieChart className="h-5 w-5 text-brand-accent" />Trip Cost Breakdown
+          <div className="space-y-5">
+            {/* Cost Breakdown with bars */}
+            <div className="card p-5 space-y-3">
+              <h3 className="text-sm font-bold flex items-center gap-2 text-slate-900">
+                <IndianRupee className="h-4 w-4 text-brand-primary" />Budget Allocation
               </h3>
-              <div className="space-y-3 text-sm">
+              <div className="space-y-2.5 text-sm">
                 {[
-                  { label: "Stay", amount: cost_breakdown.accommodation, color: "bg-brand-accent" },
-                  { label: "Food", amount: cost_breakdown.food, color: "bg-emerald-400" },
-                  { label: "Transport", amount: cost_breakdown.transport, color: "bg-amber-400" },
-                  { label: "Activities", amount: cost_breakdown.activities, color: "bg-indigo-400" }
+                  { label: "Hotel (40%)", amount: cost_breakdown.accommodation, alloc: hotelAlloc, color: "bg-indigo-500" },
+                  { label: "Transport (25%)", amount: cost_breakdown.transport, alloc: transportAlloc, color: "bg-blue-500" },
+                  { label: "Food (20%)", amount: cost_breakdown.food, alloc: foodAlloc, color: "bg-emerald-500" },
+                  { label: "Activities (15%)", amount: cost_breakdown.activities, alloc: activitiesAlloc, color: "bg-amber-500" },
                 ].map((item) => {
                   const pct = Math.round((item.amount / (cost_breakdown.total || 1)) * 100);
+                  const underAlloc = item.amount <= item.alloc;
                   return (
                     <div key={item.label} className="space-y-1">
-                      <div className="flex justify-between text-xs font-semibold">
-                        <span className="text-slate-400">{item.label}</span>
-                        <span className="text-white">{formatINR(item.amount)} ({pct}%)</span>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-slate-500">{item.label}</span>
+                        <span className={`font-semibold ${underAlloc ? 'text-slate-700' : 'text-red-500'}`}>{formatINR(item.amount)}</span>
                       </div>
-                      <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
+                      <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
                         <div className={`h-full rounded-full ${item.color}`} style={{ width: `${pct}%` }}></div>
                       </div>
                     </div>
                   );
                 })}
-                <div className="pt-2 border-t border-white/10 flex justify-between font-black">
-                  <span className="text-white">Total</span>
-                  <span className="text-emerald-400">{formatINR(cost_breakdown.total)}</span>
+                <div className="pt-2 border-t border-brand-border flex justify-between font-bold">
+                  <span className="text-slate-900">Total</span>
+                  <span className="text-brand-accent">{formatINR(cost_breakdown.total)}</span>
                 </div>
               </div>
             </div>
 
             {/* Attractions */}
-            <div className="glass-card rounded-3xl p-6 border border-white/5 space-y-4">
-              <h3 className="text-lg font-bold flex items-center gap-2">
-                <Landmark className="h-5 w-5 text-brand-accent" />Must-See Sights
+            <div className="card p-5 space-y-3">
+              <h3 className="text-sm font-bold flex items-center gap-2 text-slate-900">
+                <Landmark className="h-4 w-4 text-brand-primary" />Must-See Sights
               </h3>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {attractions.map((a, i) => (
-                  <div key={i} className="space-y-1 border-b border-white/5 pb-3 last:border-b-0 last:pb-0">
+                  <div key={i} className="space-y-0.5 border-b border-brand-border pb-2 last:border-b-0 last:pb-0">
                     <div className="flex justify-between items-baseline gap-2">
-                      <h4 className="font-bold text-white text-sm">{a.name}</h4>
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 bg-white/5 px-1.5 py-0.5 rounded">{a.type}</span>
+                      <h4 className="font-bold text-slate-900 text-sm">{a.name}</h4>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">{a.type}</span>
                     </div>
-                    <p className="text-slate-400 text-xs leading-relaxed">{a.desc}</p>
+                    <p className="text-slate-500 text-xs leading-relaxed">{a.desc}</p>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Tips */}
-            <div className="glass-card rounded-3xl p-6 border border-white/5 space-y-4">
-              <h3 className="text-lg font-bold flex items-center gap-2">
-                <Lightbulb className="h-5 w-5 text-brand-accent" />Local Travel Tips
+            <div className="card p-5 space-y-3">
+              <h3 className="text-sm font-bold flex items-center gap-2 text-slate-900">
+                <Lightbulb className="h-4 w-4 text-brand-primary" />Local Travel Tips
               </h3>
-              <ul className="space-y-3">
+              <ul className="space-y-2">
                 {tips.map((tip, i) => (
-                  <li key={i} className="text-xs text-slate-300 flex items-start gap-2.5 leading-relaxed">
-                    <span className="p-1 bg-emerald-400/20 rounded text-emerald-400 font-black text-[10px] mt-0.5 h-4 w-4 flex items-center justify-center shrink-0">✓</span>
+                  <li key={i} className="text-xs text-slate-600 flex items-start gap-2 leading-relaxed">
+                    <span className="mt-0.5 h-4 w-4 rounded-full bg-brand-accentLight text-brand-accentDark font-bold text-[10px] flex items-center justify-center shrink-0">{i + 1}</span>
                     <span>{tip}</span>
                   </li>
                 ))}
@@ -273,12 +382,12 @@ export default function TripResults({ tripData, budgetLimit, onNavigate, onSave,
         </div>
       </div>
 
-      <footer className="relative z-10 border-t border-white/5 bg-brand-dark/80 py-6 mt-12">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <p>© {new Date().getFullYear()} GoTripPilot · Budget Travel in India</p>
+      <footer className="border-t border-brand-border bg-slate-50 py-5 mt-8">
+        <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+          <p>GoTripPilot · Budget Travel in India</p>
           <div className="flex gap-4">
-            <a href="#" className="hover:text-slate-300 transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-slate-300 transition-colors">Terms of Service</a>
+            <a href="#" className="hover:text-slate-700 transition-colors">Privacy</a>
+            <a href="#" className="hover:text-slate-700 transition-colors">Terms</a>
           </div>
         </div>
       </footer>

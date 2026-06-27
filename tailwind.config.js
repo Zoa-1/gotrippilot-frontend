@@ -8,19 +8,20 @@ export default {
     extend: {
       colors: {
         brand: {
-          dark: '#030712',
-          navy: '#0A192F',
-          blue: '#1E3A8A',
-          accent: '#3B82F6',
-          light: '#F3F4F6',
+          primary: '#2563EB',
+          primaryDark: '#1D4ED8',
+          primaryLight: '#DBEAFE',
+          accent: '#10B981',
+          accentDark: '#059669',
+          accentLight: '#D1FAE5',
+          dark: '#1E293B',
+          gray: '#64748B',
+          light: '#F8FAFC',
+          border: '#E2E8F0',
         }
       },
       fontFamily: {
-        sans: ['Outfit', 'Inter', 'sans-serif'],
-      },
-      backgroundImage: {
-        'travel-gradient': 'linear-gradient(135deg, #0A192F 0%, #1E3A8A 50%, #3B82F6 100%)',
-        'glass-gradient': 'linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03))',
+        sans: ['Inter', 'Outfit', 'sans-serif'],
       },
     },
   },

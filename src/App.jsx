@@ -14,7 +14,6 @@ export default function App() {
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [pendingSave, setPendingSave] = useState(false);
-  // Kerala quick-select prefill
   const [prefilledDestination, setPrefilledDestination] = useState('');
 
   useEffect(() => {
@@ -59,6 +58,7 @@ export default function App() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        origin: formData.origin,
         destination: formData.destination,
         budget: formData.budget,
         days: formData.days,
@@ -140,14 +140,13 @@ export default function App() {
     setView('results');
   };
 
-  // Kerala destination quick-plan from landing page
   const handleKeralaDestination = (dest) => {
     setPrefilledDestination(dest);
     setView('planner');
   };
 
   return (
-    <div className="min-h-screen bg-brand-dark text-slate-100">
+    <div className="min-h-screen bg-white text-slate-800">
       {view === 'landing' && (
         <LandingPage
           onNavigate={setView}
